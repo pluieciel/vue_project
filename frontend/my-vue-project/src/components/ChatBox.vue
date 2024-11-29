@@ -1,20 +1,15 @@
 <template>
     <!-- chatbox -->
-    <div class="chat-container" :class="{ 'chat-expanded': togglechat }">
+    <div class="chat-container">
         <!-- button -->
-        <button v-show="!togglechat" @click="togglechat = !togglechat" 
-                class="btn btn-primary chat-toggle bottom-0 right-0 m-3 fw-bold">
-            <span class="px-3">Chat</span>
+        <button class="btn btn-primary end-0 bottom-0 m-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasWithBothOptions" aria-controls="offcanvasWithBothOptions">
+            <span class="fw-bold px-3">Chat</span>
         </button>
         
         <!-- content -->
-        <div v-show="togglechat" class="chat-content card">
-            <div class="card-header d-flex align-items-center py-2">
-                <button @click="togglechat = !togglechat" 
-                        class="btn btn-danger btn-sm fw-bold d-flex align-items-center justify-content-center"
-                        style="width: 30px; height: 30px; padding: 0;">
-                    <span>&times;</span>
-                </button>
+        <div class="offcanvas offcanvas-end" data-bs-scroll="true" tabindex="-1" id="offcanvasWithBothOptions" aria-labelledby="offcanvasWithBothOptionsLabel">
+            <div class="card-header text-bg-dark d-flex align-items-center p-2" data-bs-theme="dark">
+                <button1 type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button1>
                 <p class="px-3 fw-bold mb-0">Chat Box</p>
             </div>
             <div class="card-body chat-messages">
