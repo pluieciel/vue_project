@@ -21,6 +21,13 @@ export default {
       username: '',
     }
   },
+  mounted() {
+    if (this.loginsuccess) {
+      this.$router.push('/game');
+    } else {
+      this.$router.push('/login');
+    }
+  },
 }
 </script>
 

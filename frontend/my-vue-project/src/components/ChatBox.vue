@@ -11,7 +11,7 @@
     </button>
     
     <!-- Chat box -->
-    <div class="offcanvas offcanvas-end" 
+    <div class="offcanvas offcanvas-end custom-offcanvas" 
             data-bs-scroll="true" 
             tabindex="-1" 
             id="offcanvas">
@@ -135,11 +135,15 @@ export default {
 </script>
 
 <style scoped>
+.custom-offcanvas {
+    background-color: rgba(0, 0, 0, 0) !important;
+}
+
 .chat-messages {
     max-height: 100vh;
     overflow-y: auto;
     padding: 1rem;
-    background: rgba(71, 71, 71, 0.5);
+    background: rgba(54, 54, 54, 0.8);
 
     scrollbar-width: thin;
     scrollbar-color: #42b983 #f1f1f1;
