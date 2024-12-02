@@ -17,7 +17,7 @@ export default {
   components: {LoginView, MainView, },
   data() {
     return {
-      loginsuccess: true, // change to false later
+      loginsuccess: false, // change to false later
       username: '',
     }
   },

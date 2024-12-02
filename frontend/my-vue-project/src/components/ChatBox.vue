@@ -27,22 +27,78 @@
                     <p class="mb-0 ms-2 fw-bold">Chat Box</p>
                 </div>
             </div>
-        
-        <!-- msg -->
-        <div class="card-body chat-messages" ref="messageContainer">
-            <div v-for="(msg, index) in messages" 
-                    :key="index" 
-                    :class="['chat-message', msg.username === username ? 'right' : 'left']">
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-username">{{ capitalizeFirstLetter(msg.username) }}</span>
-                        <span class="message-timestamp">{{ msg.time }}</span>
-                    </div>
-                    <span class="message-text" :class="{ 'text-left': msg.username === username }">{{ msg.message }}</span>
+
+        <!-- Flex container -->
+        <div class="d-flex h-100">
+          <!-- Tabs -->
+            <ul class="nav flex-column nav-tabs custom-tabs">
+                <li class="nav-item">
+                    <a class="nav-link" 
+                    :class="{ active: activeTab === 'online' }" 
+                    @click="activeTab = 'online'"
+                    title="Online Users">
+                        O
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" 
+                    :class="{ active: activeTab === 'public' }" 
+                    @click="activeTab = 'public'"
+                    title="Public Chatroom">
+                        P
+                    </a>
+                </li>
+                <li class="nav-item" v-for="user in users" :key="user">
+                    <a class="nav-link" 
+                    :class="{ active: activeTab === user }" 
+                    @click="activeTab = user"
+                    @contextmenu.prevent="removetab(user)"
+                    :title="user">
+                        {{ user.charAt(0).toUpperCase() }}
+                    </a>
+                </li>
+            </ul>
+          
+          <!-- Chat content -->
+          <div class="card-body chat-messages flex-grow-1" ref="messageContainer">
+            <div v-if="activeTab === 'online'" class="online-users-list">
+                <div v-for="user in onlineusers"
+                    :key="user" 
+                    class="user-item d-flex align-items-center p-2"
+                    @click="addtab(user)">
+                    <span class="online-indicator me-2"></span>
+                    <span class="user-name">{{ user }}</span>
                 </div>
             </div>
+            <div v-else-if="activeTab === 'public'">
+              <div v-for="(msg, index) in publicMessages" 
+                   :key="index" 
+                   :class="['chat-message', msg.sender === username ? 'right' : 'left']">
+                <div class="message-content">
+                  <div class="message-header">
+                    <span class="message-username">{{ capitalizeFirstLetter(msg.sender) }}</span>
+                    <span class="message-timestamp">{{ msg.time }}</span>
+                  </div>
+                  <span class="message-text">{{ msg.message }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-else>
+              <div v-for="(msg, index) in privateMessages[activeTab]" 
+                   :key="index" 
+                   :class="['chat-message', msg.sender === username ? 'right' : 'left']">
+                <div class="message-content">
+                  <div class="message-header">
+                    <span class="message-username">{{ capitalizeFirstLetter(msg.sender) }}</span>
+                    <span class="message-timestamp">{{ msg.time }}</span>
+                  </div>
+                  <span class="message-text">{{ msg.message }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        
+
         <!-- input -->
         <div class="card-footer">
             <div class="input-group">
@@ -73,15 +129,21 @@ export default {
     data() {
         return {
             chatSocket: null,
-            messages: [],
-            newMessage: ''
+            publicMessages: [],
+            privateMessages: {},
+            newMessage: '',
+            recipient: '',
+            activeTab: 'public',
+            users: [],
+            onlineusers: [],
         }
     },
     methods: {
         initWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-            const wsUrl = `${protocol}${window.location.host}/chat/`;
+            const wsUrl = `${protocol}${window.location.host}/chat/?username=${this.username}`;
             
+            console.log('Connecting to:', wsUrl);
             this.chatSocket = new WebSocket(wsUrl);
             
             this.chatSocket.onopen = () => {
@@ -94,7 +156,22 @@ export default {
             
             this.chatSocket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
-                this.messages.push(data);
+                if (data.recipient === 'update_online_users') {
+                    this.onlineusers = JSON.parse(data.message);
+                } else if (data.recipient === 'public') {
+                    this.publicMessages.push(data);
+                } else {
+                    if (!this.privateMessages[data.sender]) {
+                        this.privateMessages[data.sender] = [];
+                    }
+                    this.privateMessages[data.sender].push(data);
+                    if (!this.privateMessages[data.recipient]) {
+                        this.privateMessages[data.recipient] = [];
+                    }
+                    this.privateMessages[data.recipient].push(data);
+                    if (this.activeTab !== data.sender)
+                        this.addtab(data.sender);
+                }
                 this.$nextTick(() => {
                     this.scrollToBottom();
                 });
@@ -106,7 +183,8 @@ export default {
             
             const messageData = {
                 message: this.newMessage,
-                username: this.username,
+                sender: this.username,
+                recipient: this.activeTab === 'public' ? 'public' : this.activeTab,
                 time: new Date().toLocaleTimeString()
             };
             
@@ -120,7 +198,18 @@ export default {
         },
         
         capitalizeFirstLetter(string) {
+            if (!string) return '';
             return string.charAt(0).toUpperCase() + string.slice(1);
+        },
+
+        addtab(user) {
+            if (!this.users.includes(user) && user !== this.username)
+                this.users.push(user);
+        },
+
+        removetab(user) {
+            this.users = this.users.filter(u => u !== user);
+            this.activeTab = 'public';
         }
     },
     mounted() {
@@ -135,8 +224,65 @@ export default {
 </script>
 
 <style scoped>
+.online-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #42b983;
+}
+
+.user-item {
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    background-color: #dee2e6;
+}
+
+.user-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.user-name {
+    font-weight: 500;
+}
+
+.custom-tabs {
+  border-right: 1px solid #dee2e6;
+  border-top: none;
+}
+
+.custom-tabs .nav-link {
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+    margin-right: -1px;
+    text-align: center;
+    width: 40px;  /* 固定宽度 */
+    padding: 8px 0;  /* 调整内边距 */
+    font-weight: bold;  /* 加粗字体 */
+    transition: all 0.3s ease;
+}
+
+.custom-tabs .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);  /* 半透明白色背景 */
+    font-weight: 900;  /* 更粗的字体 */
+    transform: scale(1.05);  /* 轻微放大效果 */
+}
+
+.custom-tabs .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-color: #dee2e6 transparent #dee2e6 #dee2e6;
+}
+
+.custom-tabs .nav-link.active:hover {
+    background-color: rgba(255, 255, 255, 0.4);  /* 稍微更亮的背景 */
+}
+
 .custom-offcanvas {
     background-color: rgba(0, 0, 0, 0) !important;
+    width: 500px !important;
 }
 
 .chat-messages {
