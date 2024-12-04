@@ -1,6 +1,7 @@
 <template>
     <!-- import icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
     <!-- Chat button -->
     <button class="btn btn-primary position-fixed end-0 bottom-0 m-3" 
@@ -37,7 +38,7 @@
                     :class="{ active: activeTab === 'online' }" 
                     @click="activeTab = 'online'"
                     title="Online Users">
-                        O
+                        <i class="fas fa-user"></i>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -45,7 +46,7 @@
                     :class="{ active: activeTab === 'public' }" 
                     @click="activeTab = 'public'"
                     title="Public Chatroom">
-                        P
+                        <i class="fas fa-users"></i>
                     </a>
                 </li>
                 <li class="nav-item" v-for="user in users" :key="user">
@@ -64,10 +65,22 @@
             <div v-if="activeTab === 'online'" class="online-users-list">
                 <div v-for="user in onlineusers"
                     :key="user" 
-                    class="user-item d-flex align-items-center p-2"
-                    @click="addtab(user)">
-                    <span class="online-indicator me-2"></span>
-                    <span class="user-name">{{ user }}</span>
+                    class="user-item d-flex align-items-center p-2 justify-content-between">
+                    <span class="d-flex align-items-center">
+                        <span class="online-indicator me-2"></span>
+                        <span class="user-name">{{ user }}</span>
+                    </span>
+                    <span v-if="user !== username" class="d-flex align-items-center">
+                        <button class="btn btn-primary square-btn me-1" @click="{addtab(user); if (user !== username) {activeTab = user}}">
+                            <i class="fas fa-comments"></i>
+                        </button>
+                        <button :class="['btn btn-primary square-btn', isBlocked(user) ? 'square-btn-red':'']" 
+                                title="Block User" 
+                                @contextmenu.prevent 
+                                @click="{block(user);}">
+                            <i class="fas fa-ban"></i>
+                        </button>
+                    </span>
                 </div>
             </div>
             <div v-else-if="activeTab === 'public'">
@@ -135,13 +148,14 @@ export default {
             recipient: '',
             activeTab: 'public',
             users: [],
+            blocked: [],
             onlineusers: [],
         }
     },
     methods: {
         initWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-            const wsUrl = `${protocol}${window.location.host}/chat/?username=${this.username}`;
+            const wsUrl = `${protocol}${window.location.host}/api/chat/?username=${this.username}`;
             
             console.log('Connecting to:', wsUrl);
             this.chatSocket = new WebSocket(wsUrl);
@@ -157,19 +171,22 @@ export default {
             this.chatSocket.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 if (data.recipient === 'update_online_users') {
-                    this.onlineusers = JSON.parse(data.message);
+                    this.onlineusers = JSON.parse(data.message).sort((a, b) => {return a.localeCompare(b);});
                 } else if (data.recipient === 'public') {
-                    this.publicMessages.push(data);
+                    if (!this.blocked.includes(data.sender))
+                        this.publicMessages.push(data);
                 } else {
                     if (!this.privateMessages[data.sender]) {
                         this.privateMessages[data.sender] = [];
                     }
-                    this.privateMessages[data.sender].push(data);
+                    if (!this.blocked.includes(data.sender))
+                        this.privateMessages[data.sender].push(data);
                     if (!this.privateMessages[data.recipient]) {
                         this.privateMessages[data.recipient] = [];
                     }
-                    this.privateMessages[data.recipient].push(data);
-                    if (this.activeTab !== data.sender)
+                    if (!this.blocked.includes(data.recipient))
+                        this.privateMessages[data.recipient].push(data);
+                    if (!this.blocked.includes(data.sender))
                         this.addtab(data.sender);
                 }
                 this.$nextTick(() => {
@@ -210,7 +227,19 @@ export default {
         removetab(user) {
             this.users = this.users.filter(u => u !== user);
             this.activeTab = 'public';
-        }
+        },
+
+        block(user) {
+            if (!this.blocked.includes(user)) {
+                this.blocked.push(user);
+            } else {
+                this.blocked = this.blocked.filter(u => u !== user);
+            }
+        },
+
+        isBlocked(user) {
+            return this.blocked.includes(user);
+        },
     },
     mounted() {
         this.initWebSocket();
@@ -224,6 +253,20 @@ export default {
 </script>
 
 <style scoped>
+.square-btn {
+    width: 40px; /* Set the desired width */
+    height: 40px; /* Set the same value for height to make it square */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* Remove padding to ensure the icon is centered */
+}
+
+.square-btn-red {
+    background-color: #dc3545 !important;
+    color: white;
+}
+
 .online-indicator {
     width: 8px;
     height: 8px;
@@ -235,6 +278,7 @@ export default {
     border-radius: 4px;
     transition: background-color 0.3s;
     background-color: #dee2e6;
+    min-height: 50px;
 }
 
 .user-item:hover {
@@ -266,9 +310,9 @@ export default {
 }
 
 .custom-tabs .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.2);  /* 半透明白色背景 */
-    font-weight: 900;  /* 更粗的字体 */
-    transform: scale(1.05);  /* 轻微放大效果 */
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: 900;
+    transform: scale(1.05);
 }
 
 .custom-tabs .nav-link.active {
@@ -277,7 +321,7 @@ export default {
 }
 
 .custom-tabs .nav-link.active:hover {
-    background-color: rgba(255, 255, 255, 0.4);  /* 稍微更亮的背景 */
+    background-color: rgba(255, 255, 255, 0.4);
 }
 
 .custom-offcanvas {

@@ -113,10 +113,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             sender_group = f"user_{sender}"
             recipient_group = f"user_{recipient}"
             
-            print(f"Sender group: {sender_group}")  # 调试日志
-            print(f"Recipient group: {recipient_group}")  # 调试日志
+            print(f"Sender group: {sender_group}")
+            print(f"Recipient group: {recipient_group}")
             
-            # 确保发送者和接收者都能收到消息
             for group in [sender_group, recipient_group]:
                 await self.channel_layer.group_send(
                     group,

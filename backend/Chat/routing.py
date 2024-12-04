@@ -3,5 +3,5 @@ from Chat.consumer import ChatConsumer
 
 # the empty string routes to ChatConsumer, which manages the chat functionality.
 websocket_urlpatterns = [
-    path("chat/", ChatConsumer.as_asgi()),
+    path("api/chat/", ChatConsumer.as_asgi()),
 ]
