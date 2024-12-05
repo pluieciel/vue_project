@@ -16,6 +16,6 @@ module.exports = defineConfig({
         port: 443,
         pathname: '/ws'
       }
-    }
+    },
   }
 })

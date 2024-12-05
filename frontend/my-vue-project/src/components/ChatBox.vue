@@ -86,8 +86,8 @@
             <div v-else-if="activeTab === 'public'">
               <div v-for="(msg, index) in publicMessages" 
                    :key="index" 
-                   :class="['chat-message', msg.sender === username ? 'right' : 'left']">
-                <div class="message-content">
+                   :class="['chat-message', msg.sender === username ? 'right' : msg.sender !== 'admin' ? 'left' : 'admin']">
+                <div class="message-content" :class="{ 'admin-message': msg.sender === 'admin' }">
                   <div class="message-header">
                     <span class="message-username">{{ capitalizeFirstLetter(msg.sender) }}</span>
                     <span class="message-timestamp">{{ msg.time }}</span>
@@ -253,6 +253,26 @@ export default {
 </script>
 
 <style scoped>
+.chat-message.admin .message-content {
+    background: none;
+    text-align: center;
+    color: gray;
+    padding: 0;
+    margin: 0;
+}
+
+.chat-message.admin .message-header {
+    display: none; /* Hide the header for admin messages if needed */
+}
+
+.chat-message.admin .message-text {
+    display: inline-block;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-style: italic;
+}
+
 .square-btn {
     width: 40px; /* Set the desired width */
     height: 40px; /* Set the same value for height to make it square */
