@@ -61,6 +61,7 @@ services:
             - 9001:9001
         volumes:
             - nginx_data:/var/www/html
+            - static_django_data:/var/www/html/static
         networks:
             - transcendence
         restart: unless-stopped
@@ -94,7 +95,12 @@ volumes:
             type: none
             o: bind
             device: ${PWD}/../static
-
+    static_django_data:
+        name: static_django_data
+        driver_opts:
+            type: none
+            o: bind
+            device: ${PWD}/../backend/staticfiles
 secrets:
     postgres-passwd:
         file: ${PWD}/secrets/postgres-passwd.txt

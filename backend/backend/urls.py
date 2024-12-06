@@ -19,6 +19,4 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/chat/', include('Chat.routing')),  # Chat app WebSocket routes
-    path('api/game/', include('Game.routing')),  # Game app WebSocket routes
 ]
